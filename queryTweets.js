@@ -54,13 +54,15 @@ function getTweets(query){
 function getTweetsSetTimeOut(query){
     var params = {
         "query": `"${query}" lang:he`,
+        "fromDate": 201212220000,
+        "toDate":   201812310000
     }
 
     console.log('Enter getTweets(), query: ' + query);
     const tweetArray = [];
     return new Promise((resulve, reject)=>{
         setTimeout(()=>{
-            client.get('tweets/search/30day/30daysHebrewtweets.json', params, function(error, tweets, response) {
+            client.get('tweets/search/fullarchive/TVshows.json', params, function(error, tweets, response) {
                 console.log(tweets)
                 if(tweets.results){
                     tweets.results.forEach(function(tweet) {
