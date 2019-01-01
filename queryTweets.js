@@ -2,6 +2,8 @@
 require('dotenv').load();
 
 const Twitter = require('twitter');
+const fs      = require('fs');  
+
 
 const client  = new Twitter({
     consumer_key: process.env.TWITTER_CONSUMER_KEY,
@@ -21,26 +23,24 @@ const client  = new Twitter({
 function getTweets(query){
     var params = {
         "query": `"${query}" lang:he`,
-        "maxResults": "10"
     }
 
     console.log('Enter getTweets(), query: ' + query);
     const tweetArray = [];
     return new Promise((resulve, reject)=>{
-        client.get('tweets/search/30day/my30Days.json', params, function(error, tweets, response) {
-            console.log('Query results length: ' + tweets.results.length);
+        client.get('tweets/search/30day/30daysHebrewtweets.json', params, function(error, tweets, response) {
+            console.log(tweets)
             if(tweets.results){
                 tweets.results.forEach(function(tweet) {
-                    //console.log(tweet.text)
+                    console.log('--->>>' + tweet.text);
+                    /* Push tweet item to tweets array */
                     tweetArray.push({
                         text: tweet.text,
                         created_at: tweet.created_at
                     })
-                    console.log("tweetArray.length: " + tweetArray.length)           
                 }) 
-                console.log("tweetArray.length: --------------------" + tweetArray.length)          
                 if(tweetArray.length > 0){
-                    console.log("tweetArray:" + tweetArray);
+                    /* Resulve the promise with tweetArray */
                     resulve(tweetArray);
                 }
                 else{
@@ -51,8 +51,40 @@ function getTweets(query){
     }).catch(err=>{console.log(err)})
 }
 
+function getTweetsSetTimeOut(query){
+    var params = {
+        "query": `"${query}" lang:he`,
+    }
 
-/* Get sentences array to search for each of them if there is tweets and return sentences Object array as: 
+    console.log('Enter getTweets(), query: ' + query);
+    const tweetArray = [];
+    return new Promise((resulve, reject)=>{
+        setTimeout(()=>{
+            client.get('tweets/search/30day/30daysHebrewtweets.json', params, function(error, tweets, response) {
+                console.log(tweets)
+                if(tweets.results){
+                    tweets.results.forEach(function(tweet) {
+                        console.log('--->>>' + tweet.text);
+                        /* Push tweet item to tweets array */
+                        tweetArray.push({
+                            text: tweet.text,
+                            created_at: tweet.created_at
+                        })
+                    }) 
+                    if(tweetArray.length > 0){
+                        /* Resulve the promise with tweetArray */
+                        resulve(tweetArray);
+                    }
+                    else{
+                        reject('Empty Results');
+                    }
+                }
+            })
+        },2000)
+    }).catch(err=>{console.log(err)})
+}
+
+/* the function get->sentences array from stop list and search for each item int the array if there for the "text" tweets and return sentences Object array as: 
     "sentences": [
             {
                 "sentence" : "text",
@@ -61,16 +93,28 @@ function getTweets(query){
             ... ]
 */
 async function getSentence(sentencesArray){
-    const sentencesArrayObject = [];
-    console.log('Enter getSentence()')
+    const sentecesArray = [];
+    
+    console.log('Enter getSentence()' + sentencesArray)
     for (const item of sentencesArray) {
-            const asyncResult = await getTweets(item.text);
-            console.log("asyncResult: " + asyncResult[0].text)
-            sentencesArrayObject.push(asyncResult)
+            let sentenceArrayItem = {
+                sentence : "",
+                tweets: []
+            }   
+            /* Set sentence text: "" */
+            sentenceArrayItem.sentence = item.text;
+            const asyncResult = await getTweetsSetTimeOut(item.text); 
+            sentenceArrayItem.tweets.push(asyncResult);
+            sentecesArray.push(sentenceArrayItem);
     }
-    console.log('After getSentence() main loop: ' + sentencesArrayObject[0]);
-    return sentencesArrayObject
+    console.log('After getSentence() main loop: ' + sentecesArray);
+    return new Promise(resulve=>{
+        resulve(sentecesArray)
+    })
+}
+
+module.exports = {
+    getSentence: getSentence
 }
 
 
-getSentence([{"text": "ביבי"}])

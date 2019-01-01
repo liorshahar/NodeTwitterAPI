@@ -1,67 +1,87 @@
-require('./mongoose');
-require('dotenv').load();
-var tvShowJson      = require('./stopList.json');
-var Twitter         = require('twitter');
-var mongoose        = require('mongoose');
-var mongooseModels = require('./mongooseDB/Models/TVshowsModels')
-var ObjectId        = mongoose.Types.ObjectId;
+const stopList    = require('./stopList.json');
+const queryTweets = require('./queryTweets');
+const fs          = require('fs');  
+let newTvShowArrayWithTweets = [
+    {
+        "TvShow": "ארץ נהדרת",
+        "sentences": [
+            { "text": "עם כל הכבוד, ויש כבוד..." },
+            { "text": "אם יורשה לי, ואני מאמינה שיורשה לי" },
+            { "text": "אני רוצה לצאת חוצץ" },
+            { "text": "לא בא בלובה יותר בחיים שלך" },
+            { "text": "רוצה מים מינראלה?" },
+            { "text": "רוצה משלוחה?" },
+            { "text": "אין עבודה, אין שפה. קשה, קשה!" },
+            { "text": "אחלה בחלה בחלה!" },
+            { "text": "אש היא הגורם מספר אחד לשריפות." },
+            { "text": "לא בוכים על שועל שנמעך!" },
+            { "text": "בוקר טוב נששמות!" },
+            { "text": "אידבר אוחלוש." },
+            { "text": "וויקאנד רומנטי זה בחדר חקירות" },
+            { "text": "יומני היקר, אפשר לשבת." },
+            { "text": "עשיתי פירסינג בטוטה" },
+            { "text": "תישבעי בכוכב האלופה מייקל לואיס!" },
+            { "text": "לשמור מצוות זה קצוות." },
+            { "text": "דיר בלאק הוא שותה לי את הנעליים הקלות!" },
+            { "text": "תגיד 'תה רוצה ברכית 'תוך האף?" },
+            { "text": "זה שאת טיפשה לא עושה אותך דוגמנית." },
+            { "text": "אשבע אמונים ללוציפר לעולמי עולמים!" },
+            { "text": "זאת שחושבת שהחמה זורחת לה מהעכוז" },
+            { "text": "אל תתפסי עליי עכוז." },
+            { "text": "מאמי תעשי לי בוץ לפני שאני משחררת לך איזה אחת לפנים." },
+            { "text": "תקשיב לי טוב יא מתהפך!" },
+            { "text": "עורכת דין? צעירה? יפה? אמביציונית? תפור עלי." },
+            { "text": "קפה שחור בוץ עכשיו ומיד." },
+            { "text": "אני שומעת פיקסוסים!" },
+            { "text": "הרגשת פעם דו לשונית?" },
+            { "text": "אולי תגלחי לי את הגבות?" },
+            { "text": "רקדת פעם עם גויאבה?" },
+            { "text": "יצא לך פעם לענג ברבור?" },
+            { "text": "בא לך להתחכך בחמת חלילים?" },
+            { "text": "בואו נעשה תחרות שליחתות!" },
+            { "text": "את חדרנית בלתי-נלאית!" },
+            { "text": "אתה לא תגרור את הפרובוקציה שלנו לדיון רציני!" },
+            { "text": "את כזאת פאתט." },
+            { "text": "O-M-G - או מיי גוד!!" },
+            { "text": "שיואו, את כזאת ילדת כאפות שיפ." },
+            { "text": "תן לי 5 דקות וכבר לא יהיו קטיושות בשטחים" },
+            { "text": "יש פתרון לבעיית השהידים בקניונים" },
+            { "text": "אינטרנט- לא צריך. מעכשיו יש איווט-נט." },
+            { "text": "אנו מכריזים על הקמת מדינת ישראל ביתנו." },
+            { "text": "זאת לא פאה, זאת שזירה!" },
+            { "text": "היא נמשכת אליי כמו דבורה למגנט." },
+            { "text": "אני הולך לכופף..." },
+            { "text": "מה זה פה, אצ'קלונה?" },
+            { "text": "מנגנת הימנונה שלנו." },
+            { "text": "אנחנו עם סגלגולה." },
+            { "text": "אה! סוף סוף מה שאני צריך! שקית!" },
+            { "text": "ערב טוב ושששששבת שלום לכם" },
+            { "text": "טו-אוב" },
+            { "text": "משייף לי את הפאנלים." },
+            { "text": "משביח לי את הגנים." },
+            { "text": "סוגר לי את הפינה." },
+            { "text": "מתאים לי ובניו." },
+            { "text": "איך מתאים לי שיק בננה ננה סטרפ..." }
+        ]
+      }
+];
 
-var client = new Twitter({
-  consumer_key: process.env.TWITTER_CONSUMER_KEY,
-  consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
-  bearer_token: process.env.TWITTER_BEARER_TOKEN
-});
 
 
-
-
-
-var tweetTest = {
-    _id: new ObjectId,
-    text: 'מבחינתי העניין חפור',
-    createdAt: 'this is date'
-}
-
-
-
-mongooseModels.TVShowsModel.find({ tvshowname: 'החפרנים'}, function (err, tvShows) {
-    //console.log(tvShows[0].sentences[0].text)
-    let tvShowsArraySentences = tvShows[0].sentences;
-  
-    tvShowsArraySentences.forEach((sentences)=>{
-    //console.log(sentences.text);
-    var params = {
-        "query": '"בר רפאלי" lang:he',
-        "maxResults": "10"
-      
+newTvShowArrayWithTweets.forEach(async (TvShowItem) => {
+    let newTvShowItem = {
+        TvShow: TvShowItem.TvShow,
+        sentences: []
     }
-
-    client.get('tweets/search/30day/my30Days.json', params, function(error, tweets, response) {
-        console.log(tweets.results.length);
-        if(tweets.results){
-            tweets.results.forEach(function(tweet) {
-                console.log(tweet.text)
-                var newTweet = mongooseModels.TweetsModel({
-                    _id: new ObjectId,
-                    text: tweet.text,
-                    createdAt: tweet.created_at
-                })
-                sentences.tweets.push(newTweet)
-                    
-            })   
-            
-         }
-    })
-    
-   
-    if(err){
-        console.log(err)
-        }
-        
-    });
-  
-  
+    newTvShowItem.sentences = await queryTweets.getSentence(TvShowItem.sentences);
+    fs.appendFileSync('myTesta.json', JSON.stringify(newTvShowItem, null ,4));
 });
+
+
+
+
+
+
 
 
 
